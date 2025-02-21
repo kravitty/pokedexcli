@@ -1,63 +1,64 @@
 package pokecache
 
 import (
-	"fmt"
 	"sync"
 	"time"
 )
+
+// Cache -
+type Cache struct {
+	cache map[string]cacheEntry
+	mux   *sync.Mutex
+}
 
 type cacheEntry struct {
 	createdAt time.Time
 	val       []byte
 }
-type Cache struct {
-	interval time.Duration
-	cache    map[string]cacheEntry
-	mu       sync.Mutex
-}
 
-func NewCache(interval time.Duration) *Cache {
-	fmt.Println("NewCache")
-	c := &Cache{
-		interval: interval,
-		cache:    make(map[string]cacheEntry),
+// NewCache -
+func NewCache(interval time.Duration) Cache {
+	c := Cache{
+		cache: make(map[string]cacheEntry),
+		mux:   &sync.Mutex{},
 	}
-	go c.reapLoop()
+
+	go c.reapLoop(interval)
+
 	return c
 }
 
-func (c *Cache) Add(key string, val []byte) {
-	fmt.Println("Add")
-	c.mu.Lock()
-	defer c.mu.Unlock()
+// Add -
+func (c *Cache) Add(key string, value []byte) {
+	c.mux.Lock()
+	defer c.mux.Unlock()
 	c.cache[key] = cacheEntry{
-		createdAt: time.Now(),
-		val:       val,
+		createdAt: time.Now().UTC(),
+		val:       value,
 	}
 }
 
-func (c *Cache) Get(key string) (val []byte, exists bool) {
-	//fmt.Println("Get")
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	entry, exists := c.cache[key]
-	if !exists {
-		return nil, false
-	}
-	fmt.Println(entry.val)
-	return entry.val, true
+// Get -
+func (c *Cache) Get(key string) ([]byte, bool) {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+	val, ok := c.cache[key]
+	return val.val, ok
 }
 
-func (c *Cache) reapLoop() {
-	fmt.Println("reapLoop")
-	ticker := time.Tick(c.interval)
-	for range ticker {
-		c.mu.Lock()
-		for key, entry := range c.cache {
-			if time.Since(entry.createdAt) > c.interval {
-				delete(c.cache, key)
-			}
+func (c *Cache) reapLoop(interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	for range ticker.C {
+		c.reap(time.Now().UTC(), interval)
+	}
+}
+
+func (c *Cache) reap(now time.Time, last time.Duration) {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+	for k, v := range c.cache {
+		if v.createdAt.Before(now.Add(-last)) {
+			delete(c.cache, k)
 		}
-		c.mu.Unlock()
 	}
 }

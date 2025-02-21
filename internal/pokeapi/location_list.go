@@ -13,19 +13,17 @@ func (c *Client) ListLocations(pageURL *string) (RespShallowLocations, error) {
 	if pageURL != nil {
 		url = *pageURL
 	}
-	fmt.Println("Check cache")
-	//Check cache first
-	if cacheData, exists := c.cache.Get(url); exists {
-		fmt.Println("Cache used start ListLocations")
+
+	if val, ok := c.cache.Get(url); ok {
 		locationsResp := RespShallowLocations{}
-		err := json.Unmarshal(cacheData, &locationsResp)
+		err := json.Unmarshal(val, &locationsResp)
 		if err != nil {
 			return RespShallowLocations{}, err
 		}
+
 		return locationsResp, nil
 	}
 
-	// Execute request
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return RespShallowLocations{}, err
@@ -35,8 +33,11 @@ func (c *Client) ListLocations(pageURL *string) (RespShallowLocations, error) {
 	if err != nil {
 		return RespShallowLocations{}, err
 	}
-	fmt.Println("Do request")
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return RespShallowLocations{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
 
 	dat, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -49,9 +50,6 @@ func (c *Client) ListLocations(pageURL *string) (RespShallowLocations, error) {
 		return RespShallowLocations{}, err
 	}
 
-	// Add to cache
 	c.cache.Add(url, dat)
-	fmt.Println("Cache added: ", url)
-
 	return locationsResp, nil
 }
