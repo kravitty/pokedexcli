@@ -30,9 +30,16 @@ func startRepl(cfg *config) {
 
 		command, exists := GetCommands()[commandName]
 		if exists {
-			err := command.callback(cfg)
-			if err != nil {
-				fmt.Println(err)
+			if commandName == "explore" && len(words) > 1 {
+				err := command.callback(cfg, words[1])
+				if err != nil {
+					fmt.Println(err)
+				}
+			} else {
+				err := command.callback(cfg)
+				if err != nil {
+					fmt.Println(err)
+				}
 			}
 			continue
 		} else {
@@ -51,30 +58,35 @@ func cleanInput(text string) []string {
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(*config) error
+	callback    func(*config, ...string) error
 }
 
 func GetCommands() map[string]cliCommand {
 	return map[string]cliCommand{
+		"explore": {
+			name:        "explore",
+			description: "Explore <location> for available Pokemon",
+			callback:    func(cfg *config, args ...string) error { return commandExplore(cfg, args[0]) },
+		},
 		"help": {
 			name:        "help",
 			description: "Displays a help message",
-			callback:    commandHelp,
+			callback:    func(cfg *config, args ...string) error { return commandHelp(cfg) },
 		},
 		"map": {
 			name:        "map",
 			description: "Get the next page of locations",
-			callback:    commandMapf,
+			callback:    func(cfg *config, args ...string) error { return commandMapf(cfg) },
 		},
 		"mapb": {
 			name:        "mapb",
 			description: "Get the previous page of locations",
-			callback:    commandMapb,
+			callback:    func(cfg *config, args ...string) error { return commandMapb(cfg) },
 		},
 		"exit": {
 			name:        "exit",
 			description: "Exit the Pokedex",
-			callback:    commandExit,
+			callback:    func(cfg *config, args ...string) error { return commandExit(cfg) },
 		},
 	}
 }

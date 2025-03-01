@@ -20,7 +20,6 @@ func (c *Client) ListLocations(pageURL *string) (RespShallowLocations, error) {
 		if err != nil {
 			return RespShallowLocations{}, err
 		}
-
 		return locationsResp, nil
 	}
 
@@ -49,6 +48,7 @@ func (c *Client) ListLocations(pageURL *string) (RespShallowLocations, error) {
 	if err != nil {
 		return RespShallowLocations{}, err
 	}
+	//fmt.Println(locationsResp)
 
 	c.cache.Add(url, dat)
 	return locationsResp, nil
