@@ -1,20 +1,24 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 )
 
-func commandExplore(cfg *config, location string) error {
-	fmt.Printf("Exploring " + location + "...\n")
+func commandExplore(cfg *config, args ...string) error {
+	if len(args) != 1 {
+		return errors.New("you must provide a location name")
+	}
 
-	locationDetails, err := cfg.pokeapiClient.GetLocation(location)
+	name := args[0]
+	location, err := cfg.pokeapiClient.GetLocation(name)
 	if err != nil {
-		fmt.Println("Error getting location:", err)
 		return err
 	}
-	for _, val := range locationDetails.PokemonEncounters {
-		fmt.Println(val.Pokemon.Name)
+	fmt.Printf("Exploring %s...\n", location.Name)
+	fmt.Println("Found Pokemon: ")
+	for _, enc := range location.PokemonEncounters {
+		fmt.Printf(" - %s\n", enc.Pokemon.Name)
 	}
-	//TODO: Implement Cache for location details
 	return nil
 }

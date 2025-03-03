@@ -27,19 +27,16 @@ func startRepl(cfg *config) {
 		}
 
 		commandName := words[0]
+		args := []string{}
+		if len(words) > 1 {
+			args = words[1:]
+		}
 
-		command, exists := GetCommands()[commandName]
+		command, exists := getCommands()[commandName]
 		if exists {
-			if commandName == "explore" && len(words) > 1 {
-				err := command.callback(cfg, words[1])
-				if err != nil {
-					fmt.Println(err)
-				}
-			} else {
-				err := command.callback(cfg)
-				if err != nil {
-					fmt.Println(err)
-				}
+			err := command.callback(cfg, args...)
+			if err != nil {
+				fmt.Println(err)
 			}
 			continue
 		} else {
@@ -61,32 +58,32 @@ type cliCommand struct {
 	callback    func(*config, ...string) error
 }
 
-func GetCommands() map[string]cliCommand {
+func getCommands() map[string]cliCommand {
 	return map[string]cliCommand{
-		"explore": {
-			name:        "explore",
-			description: "Explore <location> for available Pokemon",
-			callback:    func(cfg *config, args ...string) error { return commandExplore(cfg, args[0]) },
-		},
 		"help": {
 			name:        "help",
 			description: "Displays a help message",
-			callback:    func(cfg *config, args ...string) error { return commandHelp(cfg) },
+			callback:    commandHelp,
+		},
+		"explore": {
+			name:        "explore <location_name>",
+			description: "Explore a location",
+			callback:    commandExplore,
 		},
 		"map": {
 			name:        "map",
 			description: "Get the next page of locations",
-			callback:    func(cfg *config, args ...string) error { return commandMapf(cfg) },
+			callback:    commandMapf,
 		},
 		"mapb": {
 			name:        "mapb",
 			description: "Get the previous page of locations",
-			callback:    func(cfg *config, args ...string) error { return commandMapb(cfg) },
+			callback:    commandMapb,
 		},
 		"exit": {
 			name:        "exit",
 			description: "Exit the Pokedex",
-			callback:    func(cfg *config, args ...string) error { return commandExit(cfg) },
+			callback:    commandExit,
 		},
 	}
 }
